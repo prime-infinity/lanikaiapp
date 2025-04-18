@@ -2,7 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import 'chat_list_screen.dart';
+import 'friends_screen.dart';
+//import 'chat_list_screen.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 
@@ -14,12 +15,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 1; // Start with Chats tab
 
   final List<Widget> _screens = [
-    const ChatListScreen(),
+    const FriendsScreen(),
+    //const ChatListScreen(),
     const ProfileScreen(),
   ];
+
+  final List<String> _titles = ['Friends', 'Chats', 'Profile'];
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +39,10 @@ class HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(_titles[_selectedIndex]),
+        automaticallyImplyLeading: false,
+      ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -45,9 +53,13 @@ class HomeScreenState extends State<HomeScreen> {
         },
         items: const [
           BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: 'Friends',
+          ),
+          /*BottomNavigationBarItem(
             icon: Icon(Icons.chat),
             label: 'Chats',
-          ),
+          ),*/
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',

@@ -1,40 +1,48 @@
-// lib/screens/login_screen.dart
+// lib/screens/signup_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme.dart';
 import 'home_screen.dart';
-import 'signup_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  LoginScreenState createState() => LoginScreenState();
+  SignupScreenState createState() => SignupScreenState();
 }
 
-class LoginScreenState extends State<LoginScreen> {
+class SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   String? _errorMessage;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _signUp() async {
     if (_formKey.currentState!.validate()) {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        setState(() {
+          _errorMessage = "Passwords don't match";
+        });
+        return;
+      }
+
       setState(() {
         _errorMessage = null;
       });
 
       final authService = Provider.of<AuthService>(context, listen: false);
       try {
-        final success = await authService.login(
+        final success = await authService.signUp(
           _emailController.text.trim(),
           _passwordController.text,
         );
@@ -45,10 +53,6 @@ class LoginScreenState extends State<LoginScreen> {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const HomeScreen()),
           );
-        } else {
-          setState(() {
-            _errorMessage = "Invalid email or password";
-          });
         }
       } catch (e) {
         setState(() {
@@ -63,6 +67,9 @@ class LoginScreenState extends State<LoginScreen> {
     final authService = Provider.of<AuthService>(context);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Create Account'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Center(
@@ -74,13 +81,13 @@ class LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Icon(
-                    Icons.chat_bubble_outline,
+                    Icons.person_add_outlined,
                     size: 80,
                     color: AppTheme.primaryColor,
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'LanikAI Chat App',
+                    'Join Chat App',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 28,
@@ -88,7 +95,7 @@ class LoginScreenState extends State<LoginScreen> {
                       color: AppTheme.textColor,
                     ),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 32),
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
@@ -98,7 +105,11 @@ class LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
+                        return 'Please enter an email';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Please enter a valid email';
                       }
                       return null;
                     },
@@ -113,7 +124,28 @@ class LoginScreenState extends State<LoginScreen> {
                     obscureText: true,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
+                        return 'Please enter a password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Confirm Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please confirm your password';
+                      }
+                      if (value != _passwordController.text) {
+                        return 'Passwords do not match';
                       }
                       return null;
                     },
@@ -130,7 +162,7 @@ class LoginScreenState extends State<LoginScreen> {
                   ],
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: authService.isLoading ? null : _login,
+                    onPressed: authService.isLoading ? null : _signUp,
                     child: authService.isLoading
                         ? const SizedBox(
                             height: 20,
@@ -140,21 +172,18 @@ class LoginScreenState extends State<LoginScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text('Login'),
+                        : const Text('Sign Up'),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have an account?"),
+                      const Text("Already have an account?"),
                       TextButton(
                         onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (_) => const SignupScreen()),
-                          );
+                          Navigator.of(context).pop();
                         },
-                        child: const Text('Sign Up'),
+                        child: const Text('Login'),
                       ),
                     ],
                   ),

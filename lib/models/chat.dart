@@ -5,7 +5,7 @@ import 'package:lanikai/models/user.dart';
 class Chat {
   final String id;
   final User user;
-  final Message lastMessage;
+  final Message? lastMessage;
   final int unreadCount;
 
   Chat({

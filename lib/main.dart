@@ -1,11 +1,14 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/login_screen.dart';
-import 'services/auth_service.dart';
-import 'theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
+import 'services/auth_service.dart';
+import 'services/user_service.dart';
+import 'services/chat_service.dart';
+import 'services/contacts_service.dart';
+import 'screens/splash_screen.dart';
+import 'theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,8 +20,13 @@ void main() async {
   );
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthService(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => UserService()),
+        ChangeNotifierProvider(create: (_) => ChatService()),
+        ChangeNotifierProvider(create: (_) => ContactsProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -32,7 +40,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'LanikAI',
       theme: AppTheme.theme,
-      home: const LoginScreen(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

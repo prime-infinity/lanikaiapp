@@ -1,5 +1,6 @@
 // lib/screens/friends_screen.dart
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../models/contact.dart';
 import '../services/contacts_service.dart';
@@ -68,13 +69,24 @@ class FriendsScreenState extends State<FriendsScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () async {
-                final granted =
-                    await contactsProvider.requestContactsPermission();
-                if (granted) {
-                  _refreshContacts();
+                final status = await Permission.contacts.status;
+                if (status.isPermanentlyDenied) {
+                  // Open app settings if permission is permanently denied
+                  await openAppSettings();
+                } else {
+                  final granted =
+                      await contactsProvider.requestContactsPermission();
+                  if (granted) {
+                    _refreshContacts();
+                  }
                 }
               },
-              child: const Text('Grant Permission'),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: Text(
+                  'Grant Permission',
+                ),
+              ),
             ),
           ],
         ),

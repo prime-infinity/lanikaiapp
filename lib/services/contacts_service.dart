@@ -17,7 +17,25 @@ class ContactsProvider extends ChangeNotifier {
   bool get hasPermission => _hasPermission;
 
   Future<bool> requestContactsPermission() async {
-    final status = await Permission.contacts.request();
+    // Check current status first
+    PermissionStatus status = await Permission.contacts.status;
+
+    // If already granted, return true
+    if (status.isGranted) {
+      _hasPermission = true;
+      notifyListeners();
+      return true;
+    }
+
+    // If permanently denied, can't request directly
+    if (status.isPermanentlyDenied) {
+      _hasPermission = false;
+      notifyListeners();
+      return false;
+    }
+
+    // Request permission
+    status = await Permission.contacts.request();
     _hasPermission = status.isGranted;
     notifyListeners();
     return _hasPermission;

@@ -10,4 +10,16 @@ class Contact {
     required this.phoneNumber,
     this.user,
   });
+
+  Contact copyWith({
+    String? name,
+    String? phoneNumber,
+    User? user,
+  }) {
+    return Contact(
+      name: name ?? this.name,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      user: user ?? this.user,
+    );
+  }
 }

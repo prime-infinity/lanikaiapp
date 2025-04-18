@@ -17,6 +17,24 @@ class FriendsScreen extends StatefulWidget {
 
 class FriendsScreenState extends State<FriendsScreen> {
   bool _isInitialized = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -46,10 +64,29 @@ class FriendsScreenState extends State<FriendsScreen> {
     await contactsProvider.loadContacts();
   }
 
+  void _startChat(BuildContext context, Contact contact, String currentUserId) {
+    if (contact.user != null && currentUserId.isNotEmpty) {
+      // Create chatId by sorting the two user IDs to ensure consistency
+      final chatId = currentUserId.compareTo(contact.user!.id) < 0
+          ? '${currentUserId}_${contact.user!.id}'
+          : '${contact.user!.id}_$currentUserId';
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ChatDetailScreen(
+            chatId: chatId,
+            user: contact.user!,
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final contactsProvider = Provider.of<ContactsProvider>(context);
     final authService = Provider.of<AuthService>(context);
+    final currentUserId = authService.currentUser?.id ?? '';
 
     if (!contactsProvider.hasPermission) {
       return Center(
@@ -71,7 +108,6 @@ class FriendsScreenState extends State<FriendsScreen> {
               onPressed: () async {
                 final status = await Permission.contacts.status;
                 if (status.isPermanentlyDenied) {
-                  // Open app settings if permission is permanently denied
                   await openAppSettings();
                 } else {
                   final granted =
@@ -97,54 +133,88 @@ class FriendsScreenState extends State<FriendsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final contacts = contactsProvider.contacts;
+    // Filter contacts based on search query
+    final contacts = contactsProvider.contacts.where((contact) {
+      if (_searchQuery.isEmpty) return true;
+      return contact.name.toLowerCase().contains(_searchQuery) ||
+          contact.phoneNumber.contains(_searchQuery);
+    }).toList();
+
     final appContacts = contacts.where((c) => c.user != null).toList();
     final otherContacts = contacts.where((c) => c.user == null).toList();
 
-    return RefreshIndicator(
-      onRefresh: _refreshContacts,
-      child: ListView(
-        children: [
-          if (appContacts.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'Friends on Chat App',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: AppTheme.primaryColor,
-                ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search contacts...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              filled: true,
+              fillColor: Colors.grey[100],
             ),
-            ...appContacts.map((contact) =>
-                _buildContactTile(contact, authService.currentUser?.id ?? '')),
-          ],
-          if (otherContacts.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'Other Contacts',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _refreshContacts,
+            child: ListView(
+              children: [
+                if (appContacts.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Text(
+                      'Friends on Chat App',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ),
+                  ...appContacts.map(
+                      (contact) => _buildContactTile(contact, currentUserId)),
+                ],
+                if (otherContacts.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      'Invite to Chat App',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                  ...otherContacts.map(
+                      (contact) => _buildContactTile(contact, currentUserId)),
+                ],
+                if (contacts.isEmpty) ...[
+                  const SizedBox(height: 100),
+                  const Center(
+                      child: Column(
+                    children: [
+                      Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No contacts found',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  )),
+                ],
+              ],
             ),
-            ...otherContacts.map((contact) => _buildContactTile(contact, '')),
-          ],
-          if (contacts.isEmpty) ...[
-            const SizedBox(height: 100),
-            const Center(
-              child: Text(
-                'No contacts found',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          ],
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -158,7 +228,7 @@ class FriendsScreenState extends State<FriendsScreen> {
             ? NetworkImage(contact.user!.avatar!)
             : null,
         child: isAppUser && contact.user?.avatar != null
-            ? null // Will be replaced by backgroundImage below
+            ? null
             : Text(
                 contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
                 style: const TextStyle(color: Colors.white),
@@ -174,22 +244,19 @@ class FriendsScreenState extends State<FriendsScreen> {
       trailing: isAppUser
           ? IconButton(
               icon: const Icon(Icons.chat, color: AppTheme.primaryColor),
-              onPressed: () {
-                if (contact.user != null && currentUserId.isNotEmpty) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ChatDetailScreen(
-                        chatId: currentUserId.compareTo(contact.user!.id) < 0
-                            ? '${currentUserId}_${contact.user!.id}'
-                            : '${contact.user!.id}_$currentUserId',
-                        user: contact.user!,
-                      ),
-                    ),
-                  );
-                }
-              },
+              onPressed: () => _startChat(context, contact, currentUserId),
             )
-          : null,
+          : IconButton(
+              icon: const Icon(Icons.share, color: Colors.grey),
+              onPressed: () {
+                // Implement invite functionality
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Invite feature coming soon')),
+                );
+              },
+            ),
+      onTap:
+          isAppUser ? () => _startChat(context, contact, currentUserId) : null,
     );
   }
 }

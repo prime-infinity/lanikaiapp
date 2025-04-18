@@ -65,14 +65,65 @@ class UserService extends ChangeNotifier {
   Future<List<app_models.User>> searchUsersByPhoneNumbers(
       List<String> phoneNumbers) async {
     try {
+      // Prepare two versions of each phone number for matching
+      final List<String> searchNumbers = [];
+      for (final number in phoneNumbers) {
+        searchNumbers.add(number); // Original normalized number
+
+        // Add version with + if it's missing and looks like international format
+        if (!number.startsWith('+') && number.length > 10) {
+          searchNumbers.add('+$number');
+        }
+
+        // Add version without + for matching
+        if (number.startsWith('+')) {
+          searchNumbers.add(number.substring(1));
+        }
+      }
+
+      // Get profiles with phone numbers
       final response = await supabase
           .from('profiles')
           .select()
-          .inFilter('phone_number', phoneNumbers);
+          .not('phone_number', 'is', null);
 
-      return (response as List)
-          .map((user) => app_models.User.fromJson(user))
-          .toList();
+      // Match phone numbers with flexibility
+      List<app_models.User> matchedUsers = [];
+      for (final user in response) {
+        if (user['phone_number'] == null) continue;
+
+        final dbNumber = user['phone_number'] as String;
+
+        // Try to match with original form in database
+        if (searchNumbers.contains(dbNumber)) {
+          matchedUsers.add(app_models.User.fromJson(user));
+          continue;
+        }
+
+        // Try with normalized version
+        final normalizedDbNumber =
+            dbNumber.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+        if (searchNumbers.contains(normalizedDbNumber)) {
+          matchedUsers.add(app_models.User.fromJson(user));
+          continue;
+        }
+
+        // Try without + if present
+        if (normalizedDbNumber.startsWith('+') &&
+            searchNumbers.contains(normalizedDbNumber.substring(1))) {
+          matchedUsers.add(app_models.User.fromJson(user));
+          continue;
+        }
+
+        // Try with + if not present and looks like international
+        if (!normalizedDbNumber.startsWith('+') &&
+            normalizedDbNumber.length > 10 &&
+            searchNumbers.contains('+$normalizedDbNumber')) {
+          matchedUsers.add(app_models.User.fromJson(user));
+        }
+      }
+
+      return matchedUsers;
     } catch (e) {
       debugPrint('Error searching users by phone: $e');
       return [];

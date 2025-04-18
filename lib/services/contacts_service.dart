@@ -1,9 +1,9 @@
 // lib/services/contacts_service.dart
 import 'package:flutter/material.dart';
+import 'package:lanikai/models/user.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import '../models/contact.dart' as app_model;
-import '../models/user.dart';
 import 'user_service.dart';
 
 class ContactsProvider extends ChangeNotifier {
@@ -51,7 +51,7 @@ class ContactsProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      // Check permission directly with flutter_contacts as well (belt and suspenders approach)
+      // Check permission with flutter_contacts
       if (!await FlutterContacts.requestPermission()) {
         _isLoading = false;
         notifyListeners();
@@ -89,11 +89,34 @@ class ContactsProvider extends ChangeNotifier {
         final registeredUsers =
             await _userService.searchUsersByPhoneNumbers(phoneNumbers);
 
-        // Link users to contacts
+        // Link users to contacts with flexible matching
         for (int i = 0; i < appContacts.length; i++) {
           final contact = appContacts[i];
+          final String contactNumber = contact.phoneNumber;
+
+          // Try to find a matching user with flexible phone number comparison
           final matchingUser = registeredUsers.firstWhere(
-            (user) => user.phoneNumber == contact.phoneNumber,
+            (user) {
+              if (user.phoneNumber == null) return false;
+
+              final dbNumber = user.phoneNumber!;
+
+              // Direct match
+              if (dbNumber == contactNumber) return true;
+
+              // Match with + variations
+              if (dbNumber.startsWith('+') &&
+                  dbNumber.substring(1) == contactNumber) return true;
+              if (!dbNumber.startsWith('+') && '+$dbNumber' == contactNumber) {
+                return true;
+              }
+
+              // Strip all formatting and compare digits only as last resort
+              final strippedDbNumber = dbNumber.replaceAll(RegExp(r'\D'), '');
+              final strippedContactNumber =
+                  contactNumber.replaceAll(RegExp(r'\D'), '');
+              return strippedDbNumber == strippedContactNumber;
+            },
             orElse: () => User(id: '', email: ''),
           );
 
@@ -105,13 +128,6 @@ class ContactsProvider extends ChangeNotifier {
             );
           }
         }
-
-        // Sort contacts: app users first, then alphabetically
-        appContacts.sort((a, b) {
-          if (a.user != null && b.user == null) return -1;
-          if (a.user == null && b.user != null) return 1;
-          return a.name.compareTo(b.name);
-        });
       }
 
       _contacts = appContacts;
@@ -125,7 +141,22 @@ class ContactsProvider extends ChangeNotifier {
   }
 
   String normalizePhoneNumber(String phoneNumber) {
-    // Remove all non-digit characters
-    return phoneNumber.replaceAll(RegExp(r'\D'), '');
+    // Remove spaces, dashes and other non-essential characters but keep the plus sign
+    String normalized = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+
+    // If the number starts with a plus sign, keep it as is
+    if (normalized.startsWith('+')) {
+      return normalized;
+    }
+    // If the number doesn't have a plus sign but looks like an international number
+    // (e.g. starts with country code like 1 for US), add the plus sign
+    else if (normalized.length > 10 &&
+        (normalized.startsWith('1') || normalized.startsWith('44'))) {
+      return '+$normalized';
+    }
+    // Otherwise just return the digits
+    else {
+      return normalized.replaceAll(RegExp(r'\D'), '');
+    }
   }
 }

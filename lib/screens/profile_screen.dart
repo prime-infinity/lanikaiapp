@@ -120,165 +120,172 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: _isEditing ? _pickImage : null,
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundImage: _avatarFile != null
-                          ? FileImage(_avatarFile!)
-                          : user.avatar != null
-                              ? NetworkImage(user.avatar!)
-                              : null,
-                      child: (_avatarFile == null && user.avatar == null)
-                          ? Text(
-                              user.username != null && user.username!.isNotEmpty
-                                  ? user.username![0].toUpperCase()
-                                  : user.email[0].toUpperCase(),
-                              style: const TextStyle(
-                                  fontSize: 40, color: Colors.white),
-                            )
-                          : null,
-                    ),
-                    if (_isEditing)
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 20,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: _isEditing ? _pickImage : null,
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 60,
+                        backgroundImage: _avatarFile != null
+                            ? FileImage(_avatarFile!)
+                            : user.avatar != null
+                                ? NetworkImage(user.avatar!)
+                                : null,
+                        child: (_avatarFile == null && user.avatar == null)
+                            ? Text(
+                                user.username != null &&
+                                        user.username!.isNotEmpty
+                                    ? user.username![0].toUpperCase()
+                                    : user.email[0].toUpperCase(),
+                                style: const TextStyle(
+                                    fontSize: 40, color: Colors.white),
+                              )
+                            : null,
+                      ),
+                      if (_isEditing)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppTheme.primaryColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (!_isEditing) ...[
-                Text(
-                  user.username ?? 'Set Username',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  user.email,
-                  style: const TextStyle(
-                    color: AppTheme.subtitleColor,
+                const SizedBox(height: 24),
+                if (!_isEditing) ...[
+                  Text(
+                    user.username ?? 'Set Username',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                if (user.phoneNumber != null &&
-                    user.phoneNumber!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    user.phoneNumber!,
+                    user.email,
                     style: const TextStyle(
                       color: AppTheme.subtitleColor,
                     ),
                   ),
-                ],
-                const SizedBox(height: 32),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _isEditing = true;
-                    });
-                  },
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Edit Profile'),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: () => _logout(context),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
-                ),
-              ] else ...[
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a username';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.phone),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a phone number';
-                    }
-                    // Basic phone number validation
-                    if (!RegExp(r'^\d{10,15}$')
-                        .hasMatch(value.replaceAll(RegExp(r'\D'), ''))) {
-                      return 'Please enter a valid phone number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _isSaving ? null : _saveProfile,
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Save'),
-                    ),
-                    OutlinedButton(
-                      onPressed: _isSaving
-                          ? null
-                          : () {
-                              setState(() {
-                                _isEditing = false;
-                                _avatarFile = null;
-                                _initializeForm();
-                              });
-                            },
-                      child: const Text('Cancel'),
+                  if (user.phoneNumber != null &&
+                      user.phoneNumber!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      user.phoneNumber!,
+                      style: const TextStyle(
+                        color: AppTheme.subtitleColor,
+                      ),
                     ),
                   ],
-                ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _isEditing = true;
+                      });
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Padding(
+                      padding:
+                          EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      child: Text('Edit Profile'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => _logout(context),
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout'),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a username';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _phoneController,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number',
+                      prefixIcon: Icon(Icons.phone),
+                    ),
+                    keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a phone number';
+                      }
+                      // Basic phone number validation
+                      if (!RegExp(r'^\d{10,15}$')
+                          .hasMatch(value.replaceAll(RegExp(r'\D'), ''))) {
+                        return 'Please enter a valid phone number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _isSaving ? null : _saveProfile,
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Save'),
+                      ),
+                      OutlinedButton(
+                        onPressed: _isSaving
+                            ? null
+                            : () {
+                                setState(() {
+                                  _isEditing = false;
+                                  _avatarFile = null;
+                                  _initializeForm();
+                                });
+                              },
+                        child: const Text('Cancel'),
+                      ),
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'friends_screen.dart';
-//import 'chat_list_screen.dart';
+import 'chat_list_screen.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 
@@ -19,7 +19,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _screens = [
     const FriendsScreen(),
-    //const ChatListScreen(),
+    const ChatListScreen(),
     const ProfileScreen(),
   ];
 
@@ -56,10 +56,10 @@ class HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.people),
             label: 'Friends',
           ),
-          /*BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.chat),
             label: 'Chats',
-          ),*/
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
